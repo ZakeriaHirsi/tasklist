@@ -55,8 +55,15 @@ export default function ChecklistApp() {
   // Calendar year control
   const [year, setYear] = useState<number>(new Date().getFullYear());
 
-  // Data store per day (now starts EMPTY)
-  const [tasksByDate, setTasksByDate] = useState<TasksByDate>({});
+  // Data store per day - load from localStorage or start empty
+  const [tasksByDate, setTasksByDate] = useState<TasksByDate>(() => {
+    try {
+      const saved = localStorage.getItem('tasksByDate');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
   // Inline editing for day view
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -82,7 +89,11 @@ export default function ChecklistApp() {
 
   const setCurrentTasks = (updater: (prev: Task[]) => Task[]) => {
     const key = fmt(selectedDate);
-    setTasksByDate((prev) => ({ ...prev, [key]: updater(prev[key] || []) }));
+    setTasksByDate((prev) => {
+      const newTasksByDate = { ...prev, [key]: updater(prev[key] || []) };
+      localStorage.setItem('tasksByDate', JSON.stringify(newTasksByDate));
+      return newTasksByDate;
+    });
   };
 
   const toggleTask = (id: number) => {
@@ -127,7 +138,11 @@ export default function ChecklistApp() {
             dayStatus={dayStatus}
             onPrevYear={() => setYear((y) => y - 1)}
             onNextYear={() => setYear((y) => y + 1)}
-            onToday={() => setYear(today.getFullYear())}
+            onToday={() => { 
+              setSelectedDate(new Date()); 
+              setYear(today.getFullYear()); 
+              setView('day'); 
+            }}
           />
         ) : (
           <DayView
