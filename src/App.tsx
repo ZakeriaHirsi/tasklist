@@ -173,6 +173,17 @@ export default function ChecklistApp() {
 // ----------------------
 function CalendarView({ year, onSelect, dayStatus, onPrevYear, onNextYear, onToday }: { year: number; onSelect: (d: Date) => void; dayStatus: (d: Date) => 'none' | 'incomplete' | 'complete'; onPrevYear: () => void; onNextYear: () => void; onToday: () => void; }) {
   const months = useMemo(() => Array.from({ length: 12 }, (_, i) => i), []);
+  const currentMonthRef = useRef<HTMLElement>(null);
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
+  useEffect(() => {
+    // Scroll to current month if we're viewing the current year
+    if (year === currentYear && currentMonthRef.current) {
+      currentMonthRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [year, currentYear]);
   return (
     <div>
       <header className="mb-10 flex items-center justify-between">
@@ -189,14 +200,21 @@ function CalendarView({ year, onSelect, dayStatus, onPrevYear, onNextYear, onTod
       </header>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
         {months.map((m) => (
-          <Month key={m} year={year} month={m} onSelect={onSelect} dayStatus={dayStatus} />
+          <Month
+            key={m}
+            year={year}
+            month={m}
+            onSelect={onSelect}
+            dayStatus={dayStatus}
+            ref={m === currentMonth && year === currentYear ? currentMonthRef : null}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function Month({ year, month, onSelect, dayStatus }: { year: number; month: number; onSelect: (d: Date) => void; dayStatus: (d: Date) => 'none' | 'incomplete' | 'complete'; }) {
+const Month = React.forwardRef<HTMLElement, { year: number, month: number, onSelect: (d: Date) => void, dayStatus: (d: Date) => 'none' | 'incomplete' | 'complete' }>(({ year, month, onSelect, dayStatus }, ref) => {
   const first = new Date(year, month, 1);
   const monthName = first.toLocaleString(undefined, { month: 'long' });
   const startDay = (first.getDay() + 6) % 7; // Mon=0
@@ -207,7 +225,7 @@ function Month({ year, month, onSelect, dayStatus }: { year: number; month: numb
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <section>
+    <section ref={ref}>
       <h2 className="text-lg text-black mb-4">{monthName}</h2>
       <div className="grid grid-cols-7 text-xs text-gray-500 mb-2">
         {['M','T','W','T','F','S','S'].map((d) => (<div key={d} className="h-6 flex items-center">{d}</div>))}
@@ -221,7 +239,7 @@ function Month({ year, month, onSelect, dayStatus }: { year: number; month: numb
       </div>
     </section>
   );
-}
+});
 
 function DayCell({ date, status, onSelect }: { date: Date; status: 'none' | 'incomplete' | 'complete'; onSelect: (d: Date) => void; }) {
   const day = date.getDate();
